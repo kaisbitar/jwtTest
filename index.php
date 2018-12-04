@@ -6,56 +6,70 @@ require __DIR__ . '/vendor/autoload.php';
 use \Firebase\JWT\JWT;
 
 
-$headers = apache_request_headers();
-$key = "sss";
-foreach ($headers as $header => $jwt) {
-    if($header == 'Authorization'){
-    echo $jwt ;
-    $decoded = JWT::decode($jwt, $key, array('HS256'));
-    }
+$key = "asdfasdasdassssdsss";
+
+
+
+$headers = apache_request_headers();var_dump($headers);
+if(!empty($headers['Authorization'])){
+
+    $jwt = getBearerToken($headers);
+
+    try
+        {    
+            $decoded = JWT::decode($jwt, $key, array('HS256'));
+            if ($decoded == false) {
+                echo 'wrong auth';
+                die();
+            }
+            else{
+                echo($decoded->email.'sss');
+
+                return($decoded);
+            }
+    
+        }
+    catch(Exception $e){
+            echo 'Message: '.$e->getMessage();
+        }
+
+
 }
 
 
-die();
 
 
 
 
-$token = array(
-    "iss" => "http://asdasdasd.org",
-    "aud" => "http://example.com",
-    "iat" => 1356999524,
-    "nbf" => 1357000000
-);
 
-/**
- * IMPORTANT:
- * You must specify supported algorithms for your application. See
- * https://tools.ietf.org/html/draft-ietf-jose-json-web-algorithms-40
- * for a list of spec-compliant algorithms.
- */
 
- 
-$jwt = JWT::encode($token, $key);echo $jwt; return;
-$decoded = JWT::decode($jwt, $key, array('HS256'));
-
-print_r($decoded);
-
-/*21
- NOTE: This will now be an object instead of an associative array. To get
- an associative array, you will need to cast it as such:
-*/
-
-$decoded_array = (array) $decoded;
-
-/**
- * You can add a leeway to account for when there is a clock skew times between
- * the signing and verifying servers. It is recommended that this leeway should
- * not be bigger than a few minutes.
- *
- * Source: http://self-issued.info/docs/draft-ietf-oauth-json-web-token.html#nbfDef
- */
-JWT::$leeway = 60; // $leeway in seconds
-$decoded = JWT::decode($jwt, $key, array('HS256'));
+function getAuthorizationHeader(){
+    $headers = null;
+    if (isset($_SERVER['Authorization'])) {
+        $headers = trim($_SERVER["Authorization"]);
+    }
+    else if (isset($_SERVER['HTTP_AUTHORIZATION'])) { //Nginx or fast CGI
+        $headers = trim($_SERVER["HTTP_AUTHORIZATION"]);
+    } elseif (function_exists('apache_request_headers')) {
+        $requestHeaders = apache_request_headers();
+        // Server-side fix for bug in old Android versions (a nice side-effect of this fix means we don't care about capitalization for Authorization)
+        $requestHeaders = array_combine(array_map('ucwords', array_keys($requestHeaders)), array_values($requestHeaders));
+        //print_r($requestHeaders);
+        if (isset($requestHeaders['Authorization'])) {
+            $headers = trim($requestHeaders['Authorization']);
+        }
+    }
+    return $headers;
+}
+function getBearerToken() {
+    $headers = getAuthorizationHeader();
+    // HEADER: Get the access token from the header
+    if (!empty($headers)) {
+        if (preg_match('/Bearer\s(\S+)/', $headers, $matches)) {
+            return $matches[1];
+        }
+    }
+    return null;
+}
 
 ?>
